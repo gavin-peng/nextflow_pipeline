@@ -43,6 +43,15 @@ process GATK4_MUTECT2 {
         avail_mem = (task.memory.giga*0.8).intValue()
     }
     """
+    module load python/3.8.12
+    # Ensure Python3 is available and create a symlink if necessary
+    if command -v python3 >/dev/null 2>&1; then
+        ln -sf \$(which python3) ./python
+        export PATH=./:\$PATH
+    else
+        echo "Error: Python3 is not available after loading the module" >&2
+        exit 1
+    fi
 
     module load $gatk
 
