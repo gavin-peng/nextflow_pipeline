@@ -27,7 +27,7 @@ def extractDonor(sampleName) {
 workflow {
 
 // Input data source data.tsv is a tsv file with 10 columns separated by tab. Columns are:
-// Project Sample Name     Sample Attributes       Sequencer Run Name      Sequencer Run Attributes        Lane Name       Lane Number     Lane Attributes IUS Tag File Path
+// Project    Sample Name    Sample Attributes    Sequencer Run Name    Sequencer Run Attributes    Lane Name       Lane Number     Lane Attributes    IUS Tag    File Path
 // All columns except last "File Path" are considered metadata(which would be carried along the input/output channels), but some columns: Sample Attributes, Sequencer Run Attributes, Lane Attributes are themself multiple fields separated by ";".
 // Create the fastq_inputs channel
 file_inputs = Channel
@@ -65,6 +65,7 @@ file_inputs = Channel
         [meta, file(row.'File Path')]
     }
 
+
 // Create the fastq_inputs channel
 fastq_inputs = file_inputs
     .map { meta, file -> 
@@ -98,10 +99,17 @@ fastq_inputs = file_inputs
     }
     .filter { it != null }
 
+reference =  file_inputs
+    .map { meta, file ->
+        def projectConfig = params.projects[meta.project]
+        def reference = projectConfig?.reference ?: 'default_reference'
+        return refrence
+    }
+
 bwaMem(
     fastq_inputs,
     channel.of(params.bwamem.readGroups),
-    channel.of(params.bwamem.reference),
+    reference,
     channel.of(params.bwamem.sort_bam),
     channel.of(params.bwamem.threads),
     channel.of(params.bwamem.addParem)
