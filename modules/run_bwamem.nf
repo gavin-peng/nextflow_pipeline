@@ -22,7 +22,6 @@ process BWA_MEM {
     script:
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
-    def read1_name = read1.name.toString().tokenize('_')[0..4].join('_')
     def prefix = task.ext.prefix ?: "${meta.pair_id}"
     def samtools_command = sort_bam ? 'sort' : 'view'
     def extension = args2.contains("--output-fmt sam")    ? "sam" :
@@ -37,8 +36,6 @@ process BWA_MEM {
 
     """
     ${module_load_cmds}
-
-    cp ${fasta}.{amb,ann,bwt,pac,sa,alt,fai} .
 
     bwa mem -M \\
         $args \\
@@ -56,6 +53,7 @@ process BWA_MEM {
         bwa: \$(echo \$(bwa 2>&1) | sed 's/^.*Version: //; s/Contact:.*\$//')
         samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
     END_VERSIONS
+    
     """
 
     stub:
