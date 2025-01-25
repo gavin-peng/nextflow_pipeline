@@ -4,8 +4,6 @@ include {BWA_MEM} from '../modules/run_bwamem'
 workflow bwaMem {
     take:
     fastq_inputs
-    readGroups
-    reference
     sort_bam
     threads
     addParem
@@ -24,12 +22,10 @@ workflow bwaMem {
     ]
 
 
-    process_inputs = fastq_inputs.combine(reference)
-                                 .combine(readGroups)
-                                 .combine(sort_bam)
+    process_inputs = fastq_inputs.combine(sort_bam)
                                  .combine(threads)
                                  .combine(addParem)
-                                 .map { meta, read1, read2, ref, rg, sb, t, ap ->
+                                 .map { meta, read1, read2, rg, ref, sb, t, ap ->
                                      def bwaMemRef = bwaMemRef_by_genome[ref]
                                      def modules = bwaMem_modules_by_genome[ref]
                                      [meta, read1, read2, rg, bwaMemRef, sb, t, modules, ap]

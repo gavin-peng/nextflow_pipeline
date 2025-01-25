@@ -6,23 +6,8 @@ include {vep} from "./workflows/vep"
 include {mutect2} from "./workflows/mutect2"
 include {delly} from './workflows/delly'
 include {PICARD_MERGESAMFILES} from "./modules/merge_bams"
+include { createReadGroup; parseAttributes; extractDonor } from './src/utils.nf'
 
-// Function to parse attributes string into a map
-def parseAttributes(attr) {
-    attr.split(';').collectEntries { 
-        def parts = it.split('=', 2)
-        [(parts[0]): parts.size() > 1 ? parts[1] : true]
-    }
-}
-
-// Function to extract donor from Sample Name
-def extractDonor(sampleName) {
-    def parts = sampleName.split('_')
-    if (parts.size() >= 2) {
-        return parts[0] + '_' + parts[1]
-    }
-    return sampleName  // Return full sample name if it doesn't match expected format
-}
 
 workflow {
 
@@ -77,44 +62,35 @@ fastq_inputs = file_inputs
     .flatMap { library_name, group ->
         def meta = group.first().meta
         
-        // Group files by their base name (without R1/R2 suffix)
         def fileGroups = group.groupBy { item ->
             item.file.name.replaceFirst(/_R[12]\.fastq\.gz$/, '')
         }
         
-        // For each group, find R1 and R2 files and emit as individual pairs
-        return fileGroups.collect { _, files ->
+        fileGroups.collectMany { baseName, files ->
             def r1 = files.find { it.file.name.endsWith('R1.fastq.gz') }?.file
             def r2 = files.find { it.file.name.endsWith('R2.fastq.gz') }?.file
+            def projectConfig = params.projects[meta.project]
+            def reference = projectConfig?.reference ?: 'hg38'
+            def readGroup = createReadGroup(meta.sequencer_run_name, meta.ius_tag, meta.lane_number)
             
             if (r1 && r2) {
-                // Create a new meta map for each pair, including a unique identifier
                 def pairMeta = meta.clone()
                 pairMeta.pair_id = r1.name.replaceFirst(/_R1\.fastq\.gz$/, '')
-                return tuple(pairMeta, r1, r2)
+                return [tuple(pairMeta, r1, r2, readGroup, reference)]
             } else {
-                return null
+                return []
             }
         }
     }
     .filter { it != null }
 
-reference =  file_inputs
-    .map { meta, file ->
-        def projectConfig = params.projects[meta.project]
-        def reference = projectConfig?.reference ?: 'default_reference'
-        return refrence
-    }
-
 bwaMem(
     fastq_inputs,
-    channel.of(params.bwamem.readGroups),
-    reference,
     channel.of(params.bwamem.sort_bam),
     channel.of(params.bwamem.threads),
     channel.of(params.bwamem.addParem)
 )
-
+/*
 // Merge bams of multiple lanes of same library
 bams_to_merge = bwaMem.out.bam
     .map { meta, bam -> 
