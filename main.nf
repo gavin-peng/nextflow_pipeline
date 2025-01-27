@@ -52,7 +52,7 @@ file_inputs = Channel
 
 
 // Create the fastq_inputs channel
-fastq_inputs = file_inputs
+file_inputs
     .map { meta, file -> 
         def key = meta.library_name
         def value = [meta: meta, file: file]
@@ -61,7 +61,6 @@ fastq_inputs = file_inputs
     .groupTuple()
     .flatMap { library_name, group ->
         def meta = group.first().meta
-        
         def fileGroups = group.groupBy { item ->
             item.file.name.replaceFirst(/_R[12]\.fastq\.gz$/, '')
         }
@@ -83,14 +82,22 @@ fastq_inputs = file_inputs
         }
     }
     .filter { it != null }
+    .set {fastq_inputs}
+
+def alignmentInputs = fastq_inputs.filter { 
+    def meta = it[0]
+    params.projects[meta.project]?.workflows?.runAlignment == true 
+}
+
+// alignmentInputs.view {it -> println "alignment_fastq: $it"}
 
 bwaMem(
-    fastq_inputs,
+    alignmentInputs,
     channel.of(params.bwamem.sort_bam),
     channel.of(params.bwamem.threads),
     channel.of(params.bwamem.addParem)
 )
-/*
+
 // Merge bams of multiple lanes of same library
 bams_to_merge = bwaMem.out.bam
     .map { meta, bam -> 
@@ -105,7 +112,7 @@ bams_to_merge = bwaMem.out.bam
     }
 
 PICARD_MERGESAMFILES(bams_to_merge)
- 
+
 def tumor_bam = PICARD_MERGESAMFILES.out.bam
     .filter { meta, bam -> 
         meta.geo_tissue_type != 'R'
@@ -133,10 +140,11 @@ if (params.mutect2.tumor_only_mode) {
     mutect2_bams = tumor_bam.combine(normal_bam)
 }
 
+
 mutect2(
     tumor_meta,
     mutect2_bams,
-    channel.fromPath(params.mutect2.intervals),
+    params.mutect2.intervals ? Channel.fromPath(params.mutect2.intervals) : Channel.value([]),
     params.mutect2.panel_of_normals ? channel.fromPath(params.mutect2.panel_of_normals) : channel.value('NO_PON'),
     params.mutect2.panel_of_normals_tbi ? channel.fromPath(params.mutect2.panel_of_normals_tbi) :  channel.value('NO_PON_TBI'),
     channel.value(params.mutect2.reference),

@@ -36,15 +36,14 @@ process BWA_MEM {
 
     """
     ${module_load_cmds}
+    echo "readgroup:" "$readGroups"
 
     bwa mem -M \\
-        $args \\
-        -t $threads $addParem \\
-        -R $readGroups \\
+        -R "$readGroups" \\
         $fasta \\
         $read1 \\
         $read2 \\
-        | samtools $samtools_command $args2 ${reference} --threads $threads -o ${prefix}.${extension} -
+        | samtools $samtools_command $args2  -o ${prefix}.${extension} -
 
     samtools index ${prefix}.${extension}
 
