@@ -9,8 +9,9 @@ nextflow.enable.dsl=2
  * @return           A formatted read group string
  */
 def createReadGroup(String runName, String IUSTag, String laneNumber) {
-    return "@RG:Z:${runName}-${IUSTag}_${laneNumber}"
+    return "@RG\\tID:${runName}-${IUSTag}_${laneNumber}\\tSM:${runName}-${IUSTag}_${laneNumber}\\tPL:ILLUMINA\\tLB:Lib1"
 }
+
 
 // Function to parse attributes string into a map
 def parseAttributes(attr) {
