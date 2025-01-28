@@ -4,13 +4,7 @@ include {ENSEMBLVEP_VEP} from "../modules/run_vep"
 workflow vep {
 
     take:
-
-    tumorName 
-    vcf
-    reference
-    normalName
-    vepTumorOnly
-    targetBed
+    vcf_input
 
     main:
 
@@ -49,27 +43,23 @@ workflow vep {
             customTranscriptENSTids:"/.mounts/labs/gsi/src/variantEffectPredictor/mane/MANE.filtered.ENST.ID.txt"
         ]
     ]
-    reference
-    .map { ref ->
-        return [
-            fasta: GenomeResources[ref]['referenceFasta'],
-            cacheDir: GenomeResources[ref]['vepCacheDir'],
-            genome: GenomeResources[ref]['ncbiBuild'],
-            species: GenomeResources[ref]['species'],
-            vep_modules: GenomeResources[ref]['vep_modules'],
-            customTranscriptFile: GenomeResources[ref]['customTranscriptFile']
-        ]
+
+    vcf_input
+    .map { tuple ->
+        def ref = tuple[2]
+        return tuple(
+            GenomeResources[ref]['referenceFasta'],
+            GenomeResources[ref]['vepCacheDir'],
+            GenomeResources[ref]['ncbiBuild'],
+            GenomeResources[ref]['species'],
+            GenomeResources[ref]['vep_modules'],
+            GenomeResources[ref]['customTranscriptFile']
+        )
     }
     .set { vep_params }
 
     ENSEMBLVEP_VEP(
-        tumorName,
-        vcf,
-        vep_params.fasta,
-        vep_params.cacheDir,
-        vep_params.genome,
-        vep_params.species,
-        vep_params.vep_modules,
-        vep_params.customTranscriptFile
+        vcf_input,
+        vep_params
     )
 }

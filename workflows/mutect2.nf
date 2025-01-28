@@ -10,67 +10,71 @@ workflow mutect2 {
     intervalFile
     pon
     ponIdx
-    reference
-    gatk
 
     main:
 
     def GenomeResources = [
-        hg19: [
-                refDict : "/.mounts/labs/gsi/modulator/sw/data/hg19-p13/hg19_random.dict",
-                refFai : "/.mounts/labs/gsi/modulator/sw/data/hg19-p13/hg19_random.fa.fai",
-                refFasta : "/.mounts/labs/gsi/modulator/sw/data/hg19-p13/hg19_random.fa",
-                modules : "hg19/p13 samtools/1.9",
-                gnomad: "no_gnomad",
-                gnomadIdx: "no_gnomadIdx"
+        "hg19": [
+            "refDict" : '$HG19_ROOT/hg19_random.dict',
+            "refFai" : '$HG19_ROOT/hg19_random.fa.fai',
+            "refFasta" : '$HG19_ROOT/hg19_random.fa',
+            "modules" : "hg19/p13 samtools/1.9 gatk/4.1.7.0",
+            "gnomad": "",
+            "gnomadIdx": ""
         ],
-        hg38: [
-                refDict : "/.mounts/labs/gsi/modulator/sw/data/hg38-p12/hg38_random.dict",
-                refFai : "/.mounts/labs/gsi/modulator/sw/data/hg38-p12/hg38_random.fa.fai",
-                refFasta : "/.mounts/labs/gsi/modulator/sw/data/hg38-p12/hg38_random.fa",
-                gnomad: "/.mounts/labs/gsi/modulator/sw/data/hg38-gatk-gnomad-2.0/af-only-gnomad.hg38.vcf.gz",
-                gnomadIdx: "/.mounts/labs/gsi/modulator/sw/data/hg38-gatk-gnomad-2.0/af-only-gnomad.hg38.vcf.gz.tbi",
-                modules : "hg38/p12 samtools/1.9 hg38-gatk-gnomad/2.0"
+        "hg38": [
+            "refDict" : '$HG38_ROOT/hg38_random.dict',
+            "refFai" : '$HG38_ROOT/hg38_random.fa.fai',
+            "refFasta" : '$HG38_ROOT/hg38_random.fa',
+            "gnomad": '$HG38_GATK_GNOMAD_ROOT/af-only-gnomad.hg38.vcf.gz',
+            "gnomadIdx": '$HG38_GATK_GNOMAD_ROOT/af-only-gnomad.hg38.vcf.gz.tbi',
+            "modules" : "hg38/p12 samtools/1.9 hg38-gatk-gnomad/2.0 gatk/4.1.7.0"
         ],
-        mm10: [
-                refDict : "/.mounts/labs/gsi/modulator/sw/data/mm39-p6/mm10.dict",
-                refFai : "/.mounts/labs/gsi/modulator/sw/data/mm39-p6/mm10.fa.fai",
-                refFasta : "/.mounts/labs/gsi/modulator/sw/data/mm39-p6/mm10.fa",
-                modules : "mm10/p6 samtools/1.9",
-                gnomad: "no_gnomad",
-                gnomadIdx: "no_gnomadIdx"
-            ]
+        "mm10": [
+            "refDict" : '$MM10_ROOT/mm10.dict',
+            "refFai" : '$MM10_ROOT/mm10.fa.fai',
+            "refFasta" : '$MM10_ROOT/mm10.fa',
+            "modules" : "mm10/p6 samtools/1.9 gatk/4.1.7.0",
+            "gnomad": "",
+            "gnomadIdx": ""
+        ]
     ]
+
+    def reference  = tumor_meta
+    .map { meta -> 
+        def projectConfig = params.projects[meta.project]
+        return projectConfig?.reference ?: 'hg38'
+    }
+    reference.view{"$it"}
+    
     reference
     .map { ref ->
-        return [
-            refDict: GenomeResources[ref]['refDict'],
-            refFasta: GenomeResources[ref]['refFasta'],
-            refFai: GenomeResources[ref]['refFai'],
-            gnomad: GenomeResources[ref]['gnomad'],
-            gnomadIdx: GenomeResources[ref]['gnomadIdx'],
-            modules: GenomeResources[ref]['modules']
-        ]
+        tuple(
+            GenomeResources[ref]['refDict'], 
+            GenomeResources[ref]['refFasta'],
+            GenomeResources[ref]['refFai'],
+            GenomeResources[ref]['gnomad'],
+            GenomeResources[ref]['gnomadIdx'],
+            GenomeResources[ref]['modules']
+        )
     }
-    .set { mutect2_params }
+    .set { mutect2_params } 
+
+    mutect2_params.view{"$it"}
 
     GATK4_MUTECT2(
         tumor_meta,
         input_bam,
         intervalFile,
-        mutect2_params.refFasta,
-        mutect2_params.refFai,
-        mutect2_params.refDict,
-        mutect2_params.gnomad,
-        mutect2_params.gnomadIdx,
+        mutect2_params,
         pon,
-        ponIdx,
-        gatk
+        ponIdx
     )
 
     emit: 
     vcf = GATK4_MUTECT2.out.vcf
     tbi = GATK4_MUTECT2.out.tbi
     stats = GATK4_MUTECT2.out.stats
+    
 }
 

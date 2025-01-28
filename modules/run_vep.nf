@@ -1,22 +1,16 @@
 nextflow.enable.dsl=2
 process ENSEMBLVEP_VEP {
-    tag "$tumorName"
+    tag "$meta.library_name"
     publishDir  "${params.test_data}/vep/output", mode: "copy"
 
     input:
-    val tumorName 
-    path vcf
-    val fasta
-    val cacheDir
-    val genome
-    val species
-    val vep_modules
-    val customTranscriptFile
+    tuple val(meta), path(vcf), val(reference), val(target_bed)
+    tuple val(fasta), val(cacheDir), val(genome), val(speciesval vep_modules), val(customTranscriptFile)
 
     output:
-    tuple val(tumorName), path("*.vcf.gz")  , optional:true, emit: vcf
-    tuple val(tumorName), path("*.tab.gz")  , optional:true, emit: tab
-    tuple val(tumorName), path("*.json.gz") , optional:true, emit: json
+    tuple val(meta.library_name), path("*.vcf.gz")  , optional:true, emit: vcf
+    tuple val(meta.library_name), path("*.tab.gz")  , optional:true, emit: tab
+    tuple val(meta.library_name), path("*.json.gz") , optional:true, emit: json
     path "*.html"                      , optional:true, emit: report
     path "versions.yml"                , emit: versions
 
@@ -27,7 +21,7 @@ process ENSEMBLVEP_VEP {
     def args = task.ext.args ?: ''
     def file_extension = args.contains("--vcf") ? 'vcf' : args.contains("--json")? 'json' : args.contains("--tab")? 'tab' : 'vcf'
     def compress_cmd = args.contains("--compress_output") ? '' : '--compress_output bgzip'
-    def prefix = task.ext.prefix ?: "${tumorName}"
+    def prefix = task.ext.prefix ?: "${meta.library_name}"
     
     def module_list = vep_modules.split(',')
     def module_load_cmds = module_list.collect { module -> "module load ${module}" }.join('\n')
@@ -59,7 +53,7 @@ process ENSEMBLVEP_VEP {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${tumorName}"
+    def prefix = task.ext.prefix ?: "${meta.library_name}"
     """
     echo "" | gzip > ${prefix}.vcf.gz
     echo "" | gzip > ${prefix}.tab.gz

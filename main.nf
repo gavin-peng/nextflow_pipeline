@@ -89,8 +89,6 @@ def alignmentInputs = fastq_inputs.filter {
     params.projects[meta.project]?.workflows?.runAlignment == true 
 }
 
-// alignmentInputs.view {it -> println "alignment_fastq: $it"}
-
 bwaMem(
     alignmentInputs,
     channel.of(params.bwamem.sort_bam),
@@ -119,6 +117,8 @@ def tumor_bam = PICARD_MERGESAMFILES.out.bam
     }
     .map { meta, bam -> bam
 }
+tumor_bam.view { "tumor_bam: $it" }
+
 
 def tumor_meta = PICARD_MERGESAMFILES.out.bam
     .filter { meta, bam -> 
@@ -126,6 +126,7 @@ def tumor_meta = PICARD_MERGESAMFILES.out.bam
     }
     .map { meta, bam -> meta
 }
+tumor_meta.view { "tumor_meta: $it" }
 
 if (params.mutect2.tumor_only_mode) {
     mutect2_bams = tumor_bam
@@ -140,6 +141,8 @@ if (params.mutect2.tumor_only_mode) {
     mutect2_bams = tumor_bam.combine(normal_bam)
 }
 
+tumor_meta.view { "tumor_meta: $it" }
+
 
 mutect2(
     tumor_meta,
@@ -147,29 +150,24 @@ mutect2(
     params.mutect2.intervals ? Channel.fromPath(params.mutect2.intervals) : Channel.value([]),
     params.mutect2.panel_of_normals ? channel.fromPath(params.mutect2.panel_of_normals) : channel.value('NO_PON'),
     params.mutect2.panel_of_normals_tbi ? channel.fromPath(params.mutect2.panel_of_normals_tbi) :  channel.value('NO_PON_TBI'),
-    channel.value(params.mutect2.reference),
-    channel.value(params.mutect2.gatk)
 )
-   
+   /*
+def vep_vcf = mutect2.out.vcf
+    .filter {
+        def meta = it[0]
+        params.projects[meta.project]?.workflows?.runVariantCalling == true   
+    }
+    . map{ meta, vcf ->
+        def projectConfig = params.projects[meta.project]
+        def reference = projectConfig?.reference ?: 'hg38' 
+        def target_bed = projectConfig?.vep_targetBed ?: []
+        return tuple(meta, vcf, reference, target_bed)
+    }
+vep_vcf.view{it -> println "vep_vcf: ${vep_vcf}"}
 
-/*   
-    tumor_name = params.vep.tumorName
-    reference = params.vep.reference
-    normal_name = params.vep.normalName
-    vep_tumor_only = params.vep.onlyTumor
-    target_bed = params.vep.targetBed
+vep(vep_vcf)
 
-    vep_vcf = channel.fromPath("${params.test_data}/vep/input/*${tumor_name}*.vcf.gz")
-
-    vep(
-        channel.value(tumor_name),
-        vep_vcf,
-        channel.value(reference),
-        channel.value(normal_name),
-        channel.value(vep_tumor_only),
-        channel.value(target_bed)
-    )
-
+/*
     tumor_bam_files = channel.fromPath("${params.test_data}/delly/input/*${params.delly.tumorName}*.bam")
     tumor_bam_index_files = channel.fromPath("${params.test_data}/delly/input/*${params.delly.tumorName}*.bam.bai")
 
@@ -185,8 +183,7 @@ mutect2(
         delly_bams = tumor_bam_files.combine(normal_bam_files)
         delly_indexes = tumor_bam_index_files.combine(normal_bam_index_files)
     }
-    
-    delly (
+     delly (
         delly_bams,
         delly_indexes,
         params.delly.tumorName,

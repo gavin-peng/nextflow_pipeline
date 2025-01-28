@@ -12,6 +12,9 @@ def createReadGroup(String runName, String IUSTag, String laneNumber) {
     return "@RG\\tID:${runName}-${IUSTag}_${laneNumber}\\tSM:${runName}-${IUSTag}_${laneNumber}\\tPL:ILLUMINA\\tLB:Lib1"
 }
 
+def getSampleName(String donor, String tissue_origin, String tissue_type, String library_type, String group_id) {
+    return "${donor}_${tissue_origin}_${tissue_type}_${library_type}_${group_id}"
+}
 
 // Function to parse attributes string into a map
 def parseAttributes(attr) {

@@ -1,3 +1,4 @@
+include { getSampleName } from '../src/utils.nf'
 process PICARD_MERGESAMFILES {
     tag "$meta.library_name"
 
@@ -16,6 +17,7 @@ process PICARD_MERGESAMFILES {
     def prefix = task.ext.prefix ?: "${meta.library_name}"
     def bam_files = bams.sort()
     def avail_mem = 8
+
     if (!task.memory) {
         log.info '[Picard MergeSamFiles] Available memory not known - defaulting to 3GB. Specify process memory requirements to change this.'
     } else {
@@ -30,6 +32,7 @@ process PICARD_MERGESAMFILES {
             ${'--INPUT '+bam_files.join(' --INPUT ')} \\
             --OUTPUT ${prefix}.merged.bam \\
             --CREATE_INDEX true
+
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             picard: \$( echo \$(picard MergeSamFiles --version 2>&1) | grep -o 'Version:.*' | cut -f2- -d:)

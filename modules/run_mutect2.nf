@@ -9,20 +9,14 @@ process GATK4_MUTECT2 {
     val tumor_meta
     path input_bam
     val intervals
-    val ref_fasta
-    val ref_fai
-    val ref_dict
-    val germline_resource
-    val germline_resource_tbi
+    tuple val(ref_dict), val(ref_fasta), val(ref_fai), val(germline_resource), val(germline_resource_tbi), val(modules)
     val panel_of_normals
     val panel_of_normals_tbi
-    val gatk
 
     output:
     tuple val(tumor_meta), path("*.vcf.gz")     , emit: vcf
     tuple val(tumor_meta), path("*.tbi")        , emit: tbi
     tuple val(tumor_meta), path("*.stats")      , emit: stats
-    tuple val(tumor_meta), path("*.f1r2.tar.gz"), optional:true, emit: f1r2
     path "versions.yml"                   , emit: versions
 
     when:
@@ -35,6 +29,8 @@ process GATK4_MUTECT2 {
     def interval_command = intervals ? "--intervals $intervals" : ""
     def pon_command = panel_of_normals != 'NO_PON' ?  "--panel-of-normals $panel_of_normals" : ""
     def gr_command = germline_resource != 'no_gnomad' ? "--germline-resource $germline_resource" : ""
+    def module_list = modules.split(' ')
+    def module_load_cmds = module_list.collect { module -> "module load ${module}" }.join('\n')
 
     def avail_mem = 8
     if (!task.memory) {
@@ -43,6 +39,7 @@ process GATK4_MUTECT2 {
         avail_mem = (task.memory.giga*0.8).intValue()
     }
     """
+    ${module_load_cmds}
     module load python/3.8.12
     # Ensure Python3 is available and create a symlink if necessary
     if command -v python3 >/dev/null 2>&1; then
@@ -52,8 +49,6 @@ process GATK4_MUTECT2 {
         echo "Error: Python3 is not available after loading the module" >&2
         exit 1
     fi
-
-    module load $gatk
 
     gatk --java-options "-Xmx${avail_mem}G -XX:-UsePerfData" \\
         Mutect2 \\
