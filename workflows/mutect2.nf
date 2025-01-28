@@ -45,7 +45,6 @@ workflow mutect2 {
         def projectConfig = params.projects[meta.project]
         return projectConfig?.reference ?: 'hg38'
     }
-    reference.view{"$it"}
     
     reference
     .map { ref ->
@@ -59,8 +58,6 @@ workflow mutect2 {
         )
     }
     .set { mutect2_params } 
-
-    mutect2_params.view{"$it"}
 
     GATK4_MUTECT2(
         tumor_meta,

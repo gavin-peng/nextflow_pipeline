@@ -1,6 +1,6 @@
-include { getSampleName } from '../src/utils.nf'
 process PICARD_MERGESAMFILES {
     tag "$meta.library_name"
+    publishDir "${params.test_data}/mergeBam/${meta.project}/${meta.library_name}", mode: 'copy'
 
     input:
     tuple val(meta), path(bams)

@@ -47,14 +47,14 @@ workflow vep {
     vcf_input
     .map { tuple ->
         def ref = tuple[2]
-        return tuple(
+        [
             GenomeResources[ref]['referenceFasta'],
             GenomeResources[ref]['vepCacheDir'],
             GenomeResources[ref]['ncbiBuild'],
             GenomeResources[ref]['species'],
             GenomeResources[ref]['vep_modules'],
             GenomeResources[ref]['customTranscriptFile']
-        )
+        ]
     }
     .set { vep_params }
 

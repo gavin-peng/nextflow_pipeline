@@ -117,8 +117,6 @@ def tumor_bam = PICARD_MERGESAMFILES.out.bam
     }
     .map { meta, bam -> bam
 }
-tumor_bam.view { "tumor_bam: $it" }
-
 
 def tumor_meta = PICARD_MERGESAMFILES.out.bam
     .filter { meta, bam -> 
@@ -126,7 +124,6 @@ def tumor_meta = PICARD_MERGESAMFILES.out.bam
     }
     .map { meta, bam -> meta
 }
-tumor_meta.view { "tumor_meta: $it" }
 
 if (params.mutect2.tumor_only_mode) {
     mutect2_bams = tumor_bam
@@ -141,9 +138,6 @@ if (params.mutect2.tumor_only_mode) {
     mutect2_bams = tumor_bam.combine(normal_bam)
 }
 
-tumor_meta.view { "tumor_meta: $it" }
-
-
 mutect2(
     tumor_meta,
     mutect2_bams,
@@ -151,7 +145,7 @@ mutect2(
     params.mutect2.panel_of_normals ? channel.fromPath(params.mutect2.panel_of_normals) : channel.value('NO_PON'),
     params.mutect2.panel_of_normals_tbi ? channel.fromPath(params.mutect2.panel_of_normals_tbi) :  channel.value('NO_PON_TBI'),
 )
-   /*
+
 def vep_vcf = mutect2.out.vcf
     .filter {
         def meta = it[0]

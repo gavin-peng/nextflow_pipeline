@@ -1,11 +1,11 @@
 nextflow.enable.dsl=2
 process ENSEMBLVEP_VEP {
     tag "$meta.library_name"
-    publishDir  "${params.test_data}/vep/output", mode: "copy"
+    publishDir  "${params.test_data}/vep/output/${meta.project}/${meta.library_name}", mode: "copy"
 
     input:
     tuple val(meta), path(vcf), val(reference), val(target_bed)
-    tuple val(fasta), val(cacheDir), val(genome), val(speciesval vep_modules), val(customTranscriptFile)
+    tuple val(fasta), val(cacheDir), val(genome), val(species), val(vep_modules), val(customTranscriptFile)
 
     output:
     tuple val(meta.library_name), path("*.vcf.gz")  , optional:true, emit: vcf

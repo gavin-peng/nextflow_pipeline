@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 process GATK4_MUTECT2 {
     tag "${tumor_meta.library_name}"
 
-    publishDir  "${params.test_data}/mutect2/output", mode: "copy"
+    publishDir  "${params.test_data}/mutect2/output/${tumor_meta.project}/${tumor_meta.library_name}", mode: "copy"
 
     input:
     val tumor_meta

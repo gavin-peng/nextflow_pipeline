@@ -2,7 +2,7 @@ nextflow.enable.dsl=2
 process BWA_MEM {
     tag "$meta.pair_id"
 
-    publishDir "${params.test_data}/bwamem/output", mode: 'copy'
+    publishDir "${params.test_data}/bwamem/output/${meta.project}/${meta.pair_id}", mode: 'copy'
 
     input:
     tuple val(meta), path(read1), path(read2), val(readGroups), val(fasta), val(sort_bam), val(threads), val(modules), val(addParem)
