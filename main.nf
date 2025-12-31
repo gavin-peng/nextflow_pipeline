@@ -167,6 +167,28 @@ mutect2(
     channel.value(params.mutect2.gatk)
 )
 
+// VEP annotation downstream of mutect2
+tumorName_vep = mutect2.out.vcf.map { meta, _vcf -> meta.library_name }
+vcf_vep = mutect2.out.vcf
+reference_vep = mutect2.out.vcf.map { meta, _vcf ->
+    def projectConfig = params.projects[meta.project]
+    return projectConfig?.reference ?: 'hg38'
+}
+normalName_vep = channel.value('')
+vepTumorOnly_vep = channel.value(params.mutect2.tumor_only_mode)
+targetBed_vep = channel.value('')
+outputMaf_vep = channel.value(params.vep.output_maf)
+
+vep(
+    tumorName_vep,
+    vcf_vep,
+    reference_vep,
+    normalName_vep,
+    vepTumorOnly_vep,
+    targetBed_vep,
+    outputMaf_vep
+)
+
 // Delly structural variant calling
 def tumor_bam_delly = PICARD_MERGESAMFILES.out.bam
     .filter { meta, bam ->
@@ -206,22 +228,4 @@ delly(
     channel.value(params.delly.picard_module)
 )
 
-/*
-    tumor_name = params.vep.tumorName
-    reference = params.vep.reference
-    normal_name = params.vep.normalName
-    vep_tumor_only = params.vep.onlyTumor
-    target_bed = params.vep.targetBed
-
-    vep_vcf = channel.fromPath("${params.test_data}/vep/input/*${tumor_name}*.vcf.gz")
-
-    vep(
-        channel.value(tumor_name),
-        vep_vcf,
-        channel.value(reference),
-        channel.value(normal_name),
-        channel.value(vep_tumor_only),
-        channel.value(target_bed)
-    )
-    */
 }

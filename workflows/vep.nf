@@ -1,16 +1,18 @@
 nextflow.enable.dsl=2
 include {ENSEMBLVEP_VEP} from "../modules/run_vep"
+include {VCF2MAF} from "../modules/vcf2maf"
 
 workflow vep {
 
     take:
 
-    tumorName 
+    tumorName
     vcf
     reference
     normalName
     vepTumorOnly
     targetBed
+    outputMaf
 
     main:
 
@@ -57,6 +59,7 @@ workflow vep {
             genome: GenomeResources[ref]['ncbiBuild'],
             species: GenomeResources[ref]['species'],
             vep_modules: GenomeResources[ref]['vep_modules'],
+            vcf2maf_modules: GenomeResources[ref]['vcf2maf_modules'],
             customTranscriptFile: GenomeResources[ref]['customTranscriptFile']
         ]
     }
@@ -72,4 +75,27 @@ workflow vep {
         vep_params.vep_modules,
         vep_params.customTranscriptFile
     )
+
+    // Combine VEP outputs with outputMaf parameter to conditionally run VCF2MAF
+    vcf_for_maf = ENSEMBLVEP_VEP.out.vcf
+        .combine(outputMaf)
+        .filter { _meta, _vcf, shouldRunMaf -> shouldRunMaf }
+        .map { meta, vcf_file, _flag -> [meta, vcf_file] }
+
+    VCF2MAF(
+        tumorName,
+        vcf_for_maf,
+        vep_params.genome,
+        vep_params.fasta,
+        vep_params.vcf2maf_modules,
+        normalName,
+        vepTumorOnly
+    )
+
+    emit:
+    vcf = ENSEMBLVEP_VEP.out.vcf
+    tab = ENSEMBLVEP_VEP.out.tab
+    json = ENSEMBLVEP_VEP.out.json
+    report = ENSEMBLVEP_VEP.out.report
+    maf = VCF2MAF.out.maf
 }
