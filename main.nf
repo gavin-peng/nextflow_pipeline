@@ -6,6 +6,7 @@ include {vep} from "./workflows/vep"
 include {mutect2} from "./workflows/mutect2"
 include {delly} from './workflows/delly'
 include {varscan} from './workflows/varscan'
+include {haplotypecaller} from './workflows/haplotypecaller'
 include {PICARD_MERGESAMFILES} from "./modules/merge_bams"
 
 // Function to parse attributes string into a map
@@ -264,6 +265,24 @@ varscan(
     channel.value(params.varscan.intervals ?: ''),
     reference_varscan,
     channel.value(params.varscan.varscan_module)
+)
+
+// HaplotypeCaller germline variant calling (all samples)
+haplotypecaller_inputs = PICARD_MERGESAMFILES.out.bam
+    .join(PICARD_MERGESAMFILES.out.bai, by: 0)
+    .map { meta, bam, bai -> [meta, bam, bai] }
+
+reference_hc = haplotypecaller_inputs
+    .map { meta, _bam, _bai ->
+        def projectConfig = params.projects[meta.project]
+        return projectConfig?.reference ?: 'hg38'
+    }
+
+haplotypecaller(
+    haplotypecaller_inputs,
+    channel.value(params.haplotypecaller.intervals ?: ''),
+    reference_hc,
+    channel.value(params.haplotypecaller.gatk)
 )
 
 }
