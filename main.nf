@@ -5,6 +5,7 @@ include {bwaMem} from './workflows/bwamem'
 include {vep} from "./workflows/vep"
 include {mutect2} from "./workflows/mutect2"
 include {delly} from './workflows/delly'
+include {varscan} from './workflows/varscan'
 include {PICARD_MERGESAMFILES} from "./modules/merge_bams"
 
 // Function to parse attributes string into a map
@@ -226,6 +227,43 @@ delly(
     channel.value(params.delly.markdup),
     reference_delly,
     channel.value(params.delly.picard_module)
+)
+
+// VarScan somatic variant calling (tumor-normal paired)
+def tumor_bam_varscan = PICARD_MERGESAMFILES.out.bam
+    .filter { meta, _bam ->
+        meta.geo_tissue_type != 'R'
+    }
+
+def normal_bam_varscan = PICARD_MERGESAMFILES.out.bam
+    .filter { meta, _bam ->
+        meta.geo_tissue_type == 'R'
+    }
+
+// Combine tumor and normal BAMs
+varscan_bams = tumor_bam_varscan.combine(normal_bam_varscan)
+    .map { meta_t, bam_t, _meta_n, bam_n ->
+        [meta_t, bam_t, bam_n]
+    }
+
+// Extract metadata and reference
+varscan_meta = varscan_bams.map { meta, _t_bam, _n_bam -> meta }
+reference_varscan = varscan_meta.map { meta ->
+    def projectConfig = params.projects[meta.project]
+    return projectConfig?.reference ?: 'hg38'
+}
+
+// Extract just the BAMs
+varscan_tumor_bam = varscan_bams.map { _meta, t_bam, _n_bam -> t_bam }
+varscan_normal_bam = varscan_bams.map { _meta, _t_bam, n_bam -> n_bam }
+
+varscan(
+    varscan_meta,
+    varscan_tumor_bam,
+    varscan_normal_bam,
+    channel.value(params.varscan.intervals ?: ''),
+    reference_varscan,
+    channel.value(params.varscan.varscan_module)
 )
 
 }
