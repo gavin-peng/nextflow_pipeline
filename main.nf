@@ -103,7 +103,7 @@ reference =  file_inputs
     .map { meta, file ->
         def projectConfig = params.projects[meta.project]
         def reference = projectConfig?.reference ?: 'default_reference'
-        return refrence
+        return reference
     }
 
 bwaMem(

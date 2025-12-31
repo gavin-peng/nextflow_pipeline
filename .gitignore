@@ -3,4 +3,4 @@ logs/
 work/
 tests/
 qsub.sh
-run_test.sh
+run.sh
