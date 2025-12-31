@@ -83,7 +83,7 @@ fastq_inputs = file_inputs
         }
         
         // For each group, find R1 and R2 files and emit as individual pairs
-        return fileGroups.collect { _, files ->
+        return fileGroups.collect { _basename, files ->
             def r1 = files.find { it.file.name.endsWith('R1.fastq.gz') }?.file
             def r2 = files.find { it.file.name.endsWith('R2.fastq.gz') }?.file
             
