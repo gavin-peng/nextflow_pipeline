@@ -166,9 +166,47 @@ mutect2(
     channel.value(params.mutect2.reference),
     channel.value(params.mutect2.gatk)
 )
-   
 
-/*   
+// Delly structural variant calling
+def tumor_bam_delly = PICARD_MERGESAMFILES.out.bam
+    .filter { meta, bam ->
+        meta.geo_tissue_type != 'R'
+    }
+
+def normal_bam_delly = PICARD_MERGESAMFILES.out.bam
+    .filter { meta, bam ->
+        meta.geo_tissue_type == 'R'
+    }
+
+if (params.delly.tumor_only_mode) {
+    delly_bams = tumor_bam_delly.map { _meta, bam -> bam }
+    delly_bais = tumor_bam_delly.map { _meta, bam -> file(bam.toString() + '.bai') }
+    delly_meta = tumor_bam_delly.map { meta, _bam -> meta }
+} else {
+    delly_bams = tumor_bam_delly.combine(normal_bam_delly)
+        .map { _meta_t, bam_t, _meta_n, bam_n -> [bam_t, bam_n] }
+    delly_bais = tumor_bam_delly.combine(normal_bam_delly)
+        .map { _meta_t, bam_t, _meta_n, bam_n -> [file(bam_t.toString() + '.bai'), file(bam_n.toString() + '.bai')] }
+    delly_meta = tumor_bam_delly.map { meta, _bam -> meta }
+}
+
+reference_delly = delly_meta.map { meta ->
+    def projectConfig = params.projects[meta.project]
+    return projectConfig?.reference ?: 'hg38'
+}
+
+tumorName_delly = delly_meta.map { meta -> meta.library_name }
+
+delly(
+    delly_bams,
+    delly_bais,
+    tumorName_delly,
+    channel.value(params.delly.markdup),
+    reference_delly,
+    channel.value(params.delly.picard_module)
+)
+
+/*
     tumor_name = params.vep.tumorName
     reference = params.vep.reference
     normal_name = params.vep.normalName
@@ -184,31 +222,6 @@ mutect2(
         channel.value(normal_name),
         channel.value(vep_tumor_only),
         channel.value(target_bed)
-    )
-
-    tumor_bam_files = channel.fromPath("${params.test_data}/delly/input/*${params.delly.tumorName}*.bam")
-    tumor_bam_index_files = channel.fromPath("${params.test_data}/delly/input/*${params.delly.tumorName}*.bam.bai")
-
-    if (!params.delly.tumor_only_mode) {
-        normal_bam_files = channel.fromPath("${params.test_data}/delly/input/*${params.delly.normalName}*.bam")
-        normal_bam_index_files = channel.fromPath("${params.test_data}/delly/input/*${params.delly.normalName}*.bam.bai")
-    }
-
-    if (params.delly.tumor_only_mode) {
-        delly_bams = tumor_bam_files
-        delly_indexes = tumor_bam_index_files
-    } else {
-        delly_bams = tumor_bam_files.combine(normal_bam_files)
-        delly_indexes = tumor_bam_index_files.combine(normal_bam_index_files)
-    }
-    
-    delly (
-        delly_bams,
-        delly_indexes,
-        params.delly.tumorName,
-        params.delly.markdup,
-        params.delly.reference,
-        params.delly.picard_module
     )
     */
 }

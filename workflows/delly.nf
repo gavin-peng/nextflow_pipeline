@@ -45,7 +45,7 @@ workflow delly {
         )
 
         mergeAndZipALL (
-            RUN_DELLY.out.outVcf, 
+            RUN_DELLY.out.outVcf,
             RUN_DELLY.out.outTbi,
             tumorName,
             callType,
@@ -54,24 +54,21 @@ workflow delly {
             0
         )
 
-        def mergeFilteredOutputs = null
-        if (callType == "somatic") {
-            mergeFilteredOutputs = mergeAndZipFiltered (
-                RUN_DELLY.outVcf_filtered,
-                RUN_DELLY.outTbi_filtered,
-                tumorName,
-                callType,
-                params.delly.mergeAndZip_modules,
-                'filtered',
-                0
-            )
-        }
+        mergeAndZipFiltered (
+            RUN_DELLY.out.outVcf_filtered,
+            RUN_DELLY.out.outTbi_filtered,
+            tumorName,
+            callType,
+            params.delly.mergeAndZip_modules,
+            '_filtered',
+            0
+        )
 
         emit:
         mergedIndex = mergeAndZipALL.out.dellyMergedTabixIndex
         mergedVcf   = mergeAndZipALL.out.dellyMergedVcf
-        mergedFilteredIndex = mergeFilteredOutputs ? mergeFilteredOutputs.out.dellyMergedTabixIndex : null
-        mergedFilteredVcf   = mergeFilteredOutputs ? mergeFilteredOutputs.out.dellyMergedVcf : null
-        mergedFilteredPassIndex = mergeFilteredOutputs ? mergeFilteredOutputs.out.dellyMergedPassTabixIndex : null
-        mergedFilteredPassVcf = mergeFilteredOutputs ? mergeFilteredOutputs.out.dellyMergedPassVcf : null
+        mergedFilteredIndex = mergeAndZipFiltered.out.dellyMergedTabixIndex
+        mergedFilteredVcf   = mergeAndZipFiltered.out.dellyMergedVcf
+        mergedFilteredPassIndex = mergeAndZipFiltered.out.dellyMergedPassTabixIndex
+        mergedFilteredPassVcf = mergeAndZipFiltered.out.dellyMergedPassVcf
 }
